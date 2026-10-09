@@ -1,0 +1,78 @@
+{
+  "name": "shotmaster",
+  "version": "1.0.0",
+  "description": "Clip cutter and video compressor (FFMPEG UI)",
+  "private": true,
+  "type": "module",
+  "author": "Maciejszaman",
+  "main": "electron/main.cjs",
+  "bin": {
+    "shotmaster": "cli/shotmaster.cjs"
+  },
+  "scripts": {
+    "dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && electron . --dev\"",
+    "build": "vite build",
+    "start": "vite build && electron .",
+    "dist": "vite build && electron-builder",
+    "dist:linux": "vite build && electron-builder --linux",
+    "dist:win": "test -f node_modules/ffmpeg-static/ffmpeg.exe || (cd node_modules/ffmpeg-static && npm_config_platform=win32 npm_config_arch=x64 node install.js) && vite build && podman run --rm -v \"$PWD\":/project:z -v ~/.cache/electron:/root/.cache/electron:z -v ~/.cache/electron-builder:/root/.cache/electron-builder:z docker.io/electronuserland/builder:wine bash -c 'cd /project && npx electron-builder --win'"
+  },
+  "trustedDependencies": [
+    "electron",
+    "ffmpeg-static"
+  ],
+  "build": {
+    "appId": "com.shotmaster.app",
+    "productName": "Shotmaster",
+    "icon": "electron/icon.png",
+    "files": [
+      "dist/**",
+      "electron/**",
+      "cli/**",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "node_modules/ffmpeg-static/**"
+    ],
+    "linux": {
+      "target": "AppImage",
+      "category": "AudioVideo",
+      "files": [
+        "!node_modules/ffmpeg-static/ffmpeg.exe"
+      ]
+    },
+    "win": {
+      "target": "nsis",
+      "files": [
+        "!node_modules/ffmpeg-static/ffmpeg"
+      ]
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "directories": {
+      "output": "release"
+    },
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  },
+  "dependencies": {
+    "@fontsource-variable/jetbrains-mono": "^5.3.0",
+    "ffmpeg-static": "^5.3.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.1.2",
+    "concurrently": "^10.0.6",
+    "electron": "^44.7.0",
+    "electron-builder": "^26.15.3",
+    "vite": "^8.3.4",
+    "wait-on": "^9.5.1"
+  }
+}

@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Build output (vite) and packaged installers (electron-builder)
+dist/
+release/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Env / secrets
+.env
+.env.*
+
+# Editors and OS clutter
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db

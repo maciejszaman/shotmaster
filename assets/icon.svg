@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Palette: #16161a bg · #e8e8ea steel · #6e8bff accent · #ff8a1f flash · #ffd84a flash core -->
+  <rect width="512" height="512" rx="112" fill="#16161a"/>
+
+  <!-- Recoil motion lines -->
+  <g stroke="#6e8bff" stroke-width="11" stroke-linecap="round">
+    <path d="M40 232 L74 223"/>
+    <path d="M34 268 L80 256"/>
+    <path d="M42 304 L70 297"/>
+  </g>
+
+  <!-- Ejected casing -->
+  <g transform="translate(244 124) rotate(-40)">
+    <rect x="0" y="0" width="30" height="14" rx="3" fill="#ffd84a"/>
+    <rect x="0" y="0" width="8" height="14" rx="2" fill="#ff8a1f"/>
+  </g>
+
+  <g transform="translate(274 266) rotate(-16) scale(0.86) translate(-311 -262)">
+    <!-- Muzzle flash -->
+    <path fill="#ff8a1f" d="M432 205 L464 152 L478 186 L524 164 L500 200 L544 214 L498 224 L510 260 L472 236 L454 266 L444 224 Z"/>
+    <path fill="#ffd84a" d="M438 205 L464 176 L472 196 L502 186 L486 206 L512 215 L482 220 L490 242 L466 226 L456 244 L448 218 Z"/>
+
+    <!-- Hammer -->
+    <path fill="#e8e8ea" d="M108 198 L84 188 L78 204 L104 218 Z"/>
+
+    <!-- Slide with Beretta open-top cutout and exposed barrel -->
+    <path fill="#e8e8ea" d="M98 202 L110 184 L256 184 L268 206 L366 206 L372 184 L414 184 L414 226 L98 226 Z"/>
+    <rect x="400" y="175" width="10" height="11" fill="#e8e8ea"/>
+    <rect x="270" y="190" width="104" height="11" rx="5" fill="#e8e8ea"/>
+    <g fill="#16161a">
+      <rect x="122" y="193" width="6" height="24" rx="1"/>
+      <rect x="135" y="193" width="6" height="24" rx="1"/>
+      <rect x="148" y="193" width="6" height="24" rx="1"/>
+    </g>
+
+    <!-- Threaded barrel -->
+    <rect x="412" y="193" width="26" height="20" rx="3" fill="#e8e8ea"/>
+    <g fill="#16161a">
+      <rect x="419" y="193" width="4" height="20"/>
+      <rect x="428" y="193" width="4" height="20"/>
+    </g>
+
+    <!-- Frame + accessory rail -->
+    <path fill="#e8e8ea" d="M104 224 L408 224 L408 252 L292 252 L292 242 L104 242 Z"/>
+    <g fill="#16161a">
+      <rect x="314" y="245" width="9" height="7"/>
+      <rect x="335" y="245" width="9" height="7"/>
+      <rect x="356" y="245" width="9" height="7"/>
+      <rect x="377" y="245" width="9" height="7"/>
+    </g>
+
+    <!-- Squared trigger guard -->
+    <path fill="none" stroke="#e8e8ea" stroke-width="12" stroke-linejoin="round" stroke-linecap="round"
+          d="M286 246 L292 288 Q293 298 282 298 L230 298 Q216 298 212 284"/>
+    <!-- Trigger -->
+    <path fill="none" stroke="#e8e8ea" stroke-width="9" stroke-linecap="round" d="M254 248 Q242 264 250 284"/>
+
+    <!-- Raked grip with accent panel -->
+    <path fill="#e8e8ea" d="M100 230 L242 230 L242 254 L220 258 L190 356 Q186 372 168 372 L96 372 Q76 372 80 352 L108 262 Q110 250 96 240 Z"/>
+    <path fill="#6e8bff" d="M132 268 L206 268 L184 342 Q181 352 171 352 L114 352 Q103 352 106 341 Z"/>
+  </g>
+</svg>
