@@ -12,7 +12,8 @@ const { cli, isCliArgs } = require('../cli/shotmaster.cjs');
 const isDev = process.argv.includes('--dev');
 
 // `Shotmaster -s video.mp4 ...` runs the command-line tool instead of opening a window.
-const cliArgs = process.argv.slice(app.isPackaged ? 1 : 2);
+// The AppImage launcher adds --no-sandbox where user namespaces are blocked (e.g. Ubuntu 24.04).
+const cliArgs = process.argv.slice(app.isPackaged ? 1 : 2).filter((a) => a !== '--no-sandbox');
 const cliMode = isCliArgs(cliArgs);
 if (cliMode) {
   app.disableHardwareAcceleration();
