@@ -4,7 +4,6 @@ import Gallery from './Gallery.jsx';
 import { fmt, fmtSize, mediaUrl } from './format.js';
 
 const api = window.api;
-const PRESETS = [5, 8, 10];
 
 function keepSegments(start, end, cuts) {
   const sorted = [...cuts].sort((a, b) => a.start - b.start);
@@ -21,6 +20,7 @@ function keepSegments(start, end, cuts) {
 }
 
 const baseName = (p) => p.split(/[\\/]/).pop();
+const errMsg = (e) => e.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
 
 export default function App() {
   const [file, setFile] = useState(null);
@@ -33,14 +33,17 @@ export default function App() {
   const [playing, setPlaying] = useState(false);
   const [busy, setBusy] = useState(null);
   const [exported, setExported] = useState(null);
-  const [compressed, setCompressed] = useState(null);
-  const [targetMB, setTargetMB] = useState('8');
+  const [compressOn, setCompressOn] = useState(false);
+  const [targetMB, setTargetMB] = useState('10');
   const [error, setError] = useState('');
   const [box, setBox] = useState({ w: 0, h: 0 });
   const [pressedKey, setPressedKey] = useState(null);
 
   const videoRef = useRef(null);
   const stageRef = useRef(null);
+  const editorRef = useRef(null);
+  const controlsRef = useRef(null);
+  const fitTimer = useRef(null);
   const dragRef = useRef(null);
   const pressTimer = useRef(null);
   const exportRef = useRef(null);
@@ -67,10 +70,9 @@ export default function App() {
       setPendingCut(null);
       setZoom({ scale: 1, x: 0.5, y: 0.5 });
       setExported(null);
-      setCompressed(null);
       setTime(0);
     } catch (e) {
-      setError(e.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, ''));
+      setError(errMsg(e));
     }
   }, []);
 
@@ -92,20 +94,33 @@ export default function App() {
     };
   }, [load]);
 
-  // Fit the video box into the stage while keeping its aspect ratio.
+  // Fit the video into the space left above the controls, keeping its aspect ratio.
+  // The stage hugs the video, so the controls sit right under it.
   const fitBox = useCallback(() => {
-    const v = videoRef.current, s = stageRef.current;
-    if (!v || !s || !v.videoWidth) return;
+    const v = videoRef.current, s = stageRef.current, ed = editorRef.current, c = controlsRef.current;
+    if (!v || !s || !ed || !c || !v.videoWidth) return;
     const ar = v.videoWidth / v.videoHeight;
-    const sw = s.clientWidth, sh = s.clientHeight;
-    setBox(sw / sh > ar ? { w: sh * ar, h: sh } : { w: sw, h: sw / ar });
+    const cs = getComputedStyle(ed);
+    const sw = s.clientWidth;
+    const sh = Math.max(0, ed.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)
+      - parseFloat(cs.rowGap) - c.offsetHeight);
+    const h = sw / sh > ar ? sh : sw / ar;
+    setBox({ w: h * ar, h });
+    // Height left over below the controls: shrink the window to drop it once resizing settles.
+    const extra = Math.floor(sh - h);
+    clearTimeout(fitTimer.current);
+    if (extra > 0) fitTimer.current = setTimeout(() => api.fitHeight(window.innerHeight - extra), 150);
   }, []);
 
   useEffect(() => {
-    if (!stageRef.current) return;
+    if (!editorRef.current) return;
     const ro = new ResizeObserver(fitBox);
-    ro.observe(stageRef.current);
-    return () => ro.disconnect();
+    ro.observe(editorRef.current);
+    ro.observe(controlsRef.current);
+    return () => {
+      ro.disconnect();
+      clearTimeout(fitTimer.current);
+    };
   }, [file, fitBox]);
 
   // Preview playback skips cut-out parts and stops at the end point.
@@ -179,6 +194,7 @@ export default function App() {
       else if (e.code === 'KeyZ') markStart();
       else if (e.code === 'KeyX') markEnd();
       else if (e.code === 'KeyC') markCut();
+      else if (e.code === 'KeyV') setCompressOn((c) => !c);
       else if (e.code === 'Escape') setPendingCut(null);
       else if (e.code === 'ArrowLeft') seek(time - (e.shiftKey ? 1 / 30 : 1));
       else if (e.code === 'ArrowRight') seek(time + (e.shiftKey ? 1 / 30 : 1));
@@ -211,35 +227,20 @@ export default function App() {
     window.addEventListener('mouseup', up);
   };
 
-  const errMsg = (e) => e.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
-
   const doExport = async () => {
+    const mb = parseFloat(targetMB);
+    if (compressOn && !(mb > 0)) return setError('Enter a valid size in MB');
     videoRef.current?.pause();
     setError('');
     try {
-      const res = await api.exportVideo({ input: file.path, start, end, cuts, zoom });
-      if (res) {
-        setExported(res);
-        setCompressed(null);
-      }
+      const res = await api.exportVideo({ input: file.path, start, end, cuts, zoom, targetMB: compressOn ? mb : null });
+      if (res) setExported(res);
     } catch (e) {
       if (errMsg(e) !== 'Cancelled') setError(errMsg(e));
     }
     setBusy(null);
   };
   exportRef.current = doExport;
-
-  const doCompress = async () => {
-    const mb = parseFloat(targetMB);
-    if (!(mb > 0)) return setError('Enter a valid size in MB');
-    setError('');
-    try {
-      setCompressed(await api.compress({ input: exported.path, targetMB: mb }));
-    } catch (e) {
-      if (errMsg(e) !== 'Cancelled') setError(errMsg(e));
-    }
-    setBusy(null);
-  };
 
   if (!file) {
     return (
@@ -263,135 +264,119 @@ export default function App() {
         <button className="ghost" onClick={open} disabled={!!busy}>Open another</button>
       </header>
 
-      <div className="stage" ref={stageRef}>
-        <div
-          className={`frame ${zoom.scale > 1 ? 'pannable' : ''}`}
-          style={{ width: box.w, height: box.h }}
-          onMouseDown={onStageDown}
-        >
-          <video
-            ref={videoRef}
-            src={file.url}
-            onLoadedMetadata={fitBox}
-            onPlay={() => setPlaying(true)}
-            onPause={() => setPlaying(false)}
-            onSeeked={(e) => setTime(e.target.currentTime)}
-            onError={() => setError('Preview not supported for this codec (export still works).')}
-            style={{
-              transform: `scale(${zoom.scale})`,
-              transformOrigin: `${zoom.x * 100}% ${zoom.y * 100}%`,
-            }}
-          />
-        </div>
-      </div>
-
-      <div className="controls">
-        <div className="timeline-panel">
-          <Timeline
-            duration={duration}
-            time={time}
-            start={start}
-            end={end}
-            cuts={cuts}
-            pendingCut={pendingCut}
-            onSeek={seek}
-            onStart={setStart}
-            onEnd={setEnd}
-          />
-          <KeyRow pressed={pressedKey} onJump={jumpTo} />
-          <div className="row transport">
-            <button className="play" onClick={togglePlay} title={playing ? 'Pause' : 'Play'}>
-              <svg viewBox="0 0 12 12">
-                {playing
-                  ? <path d="M2 1h3v10H2zM7 1h3v10H7z" />
-                  : <path d="M2.5 1v10l9-5z" />}
-              </svg>
-            </button>
-            <span className="time">{fmt(time)} / {fmt(duration)}</span>
-            <span className="spacer" />
-            <span className="muted">Output: {fmt(outDuration)}</span>
+      <div className="editor" ref={editorRef}>
+        <div className="stage" ref={stageRef}>
+          <div
+            className={`frame ${zoom.scale > 1 ? 'pannable' : ''}`}
+            style={{ width: box.w, height: box.h }}
+            onMouseDown={onStageDown}
+          >
+            <video
+              ref={videoRef}
+              src={file.url}
+              onLoadedMetadata={fitBox}
+              onPlay={() => setPlaying(true)}
+              onPause={() => setPlaying(false)}
+              onSeeked={(e) => setTime(e.target.currentTime)}
+              onError={() => setError('Preview not supported for this codec (export still works).')}
+              style={{
+                transform: `scale(${zoom.scale})`,
+                transformOrigin: `${zoom.x * 100}% ${zoom.y * 100}%`,
+              }}
+            />
           </div>
         </div>
 
-        <div className="row tools">
-          <div className="group">
-            <span className="label">Trim</span>
-            <button onClick={markStart} title="Shortcut: Z">Set start <kbd>Z</kbd></button>
-            <button onClick={markEnd} title="Shortcut: X">Set end <kbd>X</kbd></button>
+        <div className="controls" ref={controlsRef}>
+          <div className="timeline-panel">
+            <Timeline
+              duration={duration}
+              time={time}
+              start={start}
+              end={end}
+              cuts={cuts}
+              pendingCut={pendingCut}
+              onSeek={seek}
+              onStart={setStart}
+              onEnd={setEnd}
+            />
+            <KeyRow pressed={pressedKey} onJump={jumpTo} />
+            <div className="row transport">
+              <button className="play" onClick={togglePlay} title={playing ? 'Pause' : 'Play'}>
+                <svg viewBox="0 0 12 12">
+                  {playing
+                    ? <path d="M2 1h3v10H2zM7 1h3v10H7z" />
+                    : <path d="M2.5 1v10l9-5z" />}
+                </svg>
+              </button>
+              <span className="time">{fmt(time)} / {fmt(duration)}</span>
+              <span className="spacer" />
+              <span className="muted">Output: {fmt(outDuration)}</span>
+            </div>
           </div>
-          <div className="group">
-            <span className="label">Cut out</span>
+
+          <div className="row">
+            <div className="group">
+              <button onClick={markStart} title="Shortcut: Z">Set start <kbd>Z</kbd></button>
+              <button onClick={markEnd} title="Shortcut: X">Set end <kbd>X</kbd></button>
+            </div>
             <button className={pendingCut != null ? 'active' : ''} onClick={markCut} title="Shortcut: C">
               {pendingCut != null ? `End cut (from ${fmt(pendingCut)})` : 'Start cut'} <kbd>C</kbd>
             </button>
-          </div>
-          <div className="group zoom">
-            <span className="label">Zoom</span>
-            <input
-              type="range" min="1" max="4" step="0.05" value={zoom.scale}
-              onChange={(e) => setZoom((z) => ({ ...z, scale: parseFloat(e.target.value) }))}
-            />
-            <span className="zoom-val">{zoom.scale.toFixed(2)}×</span>
-            {zoom.scale > 1 && (
-              <button className="ghost" onClick={() => setZoom({ scale: 1, x: 0.5, y: 0.5 })}>Reset</button>
-            )}
-          </div>
-        </div>
-        {zoom.scale > 1 && <div className="hint">Drag the video to choose the zoomed area.</div>}
-
-        {cuts.length > 0 && (
-          <div className="cuts">
-            {cuts.map((c, i) => (
-              <span key={i} className="chip">
-                <button className="chip-seek" onClick={() => seek(c.start)}>{fmt(c.start)} – {fmt(c.end)}</button>
-                <button className="chip-x" onClick={() => setCuts(cuts.filter((_, j) => j !== i))}>×</button>
-              </span>
-            ))}
-          </div>
-        )}
-
-        <div className="row actions">
-          <button className="primary" onClick={doExport} disabled={!!busy || outDuration <= 0} title="Shortcut: Ctrl+S">
-            Export <kbd className="on-primary">Ctrl</kbd><kbd className="on-primary">S</kbd>
-          </button>
-          {exported && (
-            <span className="result">
-              {baseName(exported.path)} · {fmtSize(exported.size)}
-              <button className="link" onClick={() => api.showInFolder(exported.path)}>Show</button>
-            </span>
-          )}
-        </div>
-
-        {exported && (
-          <div className="row compress">
-            <span className="label">Compress to</span>
-            {PRESETS.map((mb) => (
-              <button
-                key={mb}
-                className={parseFloat(targetMB) === mb ? 'active' : ''}
-                onClick={() => setTargetMB(String(mb))}
-              >
-                {mb} MB
-              </button>
-            ))}
-            <span className="custom">
+            <div className="group">
               <input
-                type="number" min="0.5" step="0.5" value={targetMB}
-                onChange={(e) => setTargetMB(e.target.value)}
+                type="range" min="1" max="4" step="0.05" value={zoom.scale} title="Zoom"
+                onChange={(e) => setZoom((z) => ({ ...z, scale: parseFloat(e.target.value) }))}
               />
-              MB
-            </span>
-            <button className="primary" onClick={doCompress} disabled={!!busy}>Compress</button>
-            {compressed && (
+              <span className="zoom-val">{zoom.scale.toFixed(2)}×</span>
+              {zoom.scale > 1 && (
+                <button className="ghost" onClick={() => setZoom({ scale: 1, x: 0.5, y: 0.5 })}>Reset</button>
+              )}
+            </div>
+          </div>
+          {zoom.scale > 1 && <div className="hint">Drag the video to choose the zoomed area.</div>}
+
+          {cuts.length > 0 && (
+            <div className="cuts">
+              {cuts.map((c, i) => (
+                <span key={i} className="chip">
+                  <button className="chip-seek" onClick={() => seek(c.start)}>{fmt(c.start)} – {fmt(c.end)}</button>
+                  <button className="chip-x" onClick={() => setCuts(cuts.filter((_, j) => j !== i))}>×</button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          <div className="row actions">
+            <button className="primary" onClick={doExport} disabled={!!busy || outDuration <= 0} title="Shortcut: Ctrl+S">
+              Export <kbd className="on-primary">Ctrl</kbd><kbd className="on-primary">S</kbd>
+            </button>
+            <div className={`group compress ${compressOn ? '' : 'off'}`}>
+              <button
+                role="checkbox" aria-checked={compressOn}
+                className={`check ${compressOn ? 'active' : ''}`}
+                onClick={() => setCompressOn((c) => !c)} title="Shortcut: V"
+              >
+                <span className="box" />Compress to <kbd>V</kbd>
+              </button>
+              <span className="custom">
+                <input
+                  type="number" min="0.5" step="0.5" value={targetMB}
+                  onChange={(e) => setTargetMB(e.target.value)}
+                />
+                MB
+              </span>
+            </div>
+            {exported && (
               <span className="result">
-                {baseName(compressed.path)} · {fmtSize(compressed.size)}
-                <button className="link" onClick={() => api.showInFolder(compressed.path)}>Show</button>
+                {baseName(exported.path)} · {fmtSize(exported.size)}
+                <button className="link" onClick={() => api.showInFolder(exported.path)}>Show</button>
               </span>
             )}
           </div>
-        )}
 
-        {error && <div className="error">{error}</div>}
+          {error && <div className="error">{error}</div>}
+        </div>
       </div>
 
       {busy && (

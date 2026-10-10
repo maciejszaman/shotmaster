@@ -9,9 +9,11 @@
   --accent: #ff8a1f;
   --cut: #ff5f56;
   --head: #e8e8ea;
-  --mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+  --mono: 'Ubuntu Mono', ui-monospace, Menlo, Consolas, monospace;
+  --gap: 10px;      /* the one spacing between controls, rows and edges */
+  --control: 34px;  /* height of buttons and inputs */
   font-family: var(--mono);
-  font-size: 14px;
+  font-size: 16px;
   color: var(--text);
   background: var(--bg);
   color-scheme: dark;
@@ -28,11 +30,15 @@ button {
   background: var(--panel-2);
   border: 1px solid var(--edge);
   border-radius: 4px;
-  padding: 4px 10px;
+  padding: 4px var(--gap);
   cursor: pointer;
   white-space: nowrap;
   transition: filter 0.1s;
+  display: inline-flex;
+  align-items: center;
 }
+/* A trailing keycap sits as far from the right edge as from the top and bottom. */
+button:has(> kbd:last-child) { padding-right: calc((var(--control) - 2px - 22px) / 2); }
 button:hover:not(:disabled) { filter: brightness(1.2); }
 button:active:not(:disabled) { filter: brightness(0.9); }
 button:disabled { opacity: 0.4; cursor: default; }
@@ -44,7 +50,7 @@ button.primary {
 button.ghost { background: transparent; }
 button.link {
   background: none; border: none;
-  color: var(--accent); padding: 0 0 0 8px; text-decoration: underline;
+  color: var(--accent); padding: 0 0 0 var(--gap); text-decoration: underline;
 }
 
 /* Keycap: flat, outlined */
@@ -52,11 +58,11 @@ kbd {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 4px;
-  margin-left: 6px;
-  font: 600 12px/1 var(--mono);
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  margin-left: 8px;
+  font: 600 14px/1 var(--mono);
   color: var(--muted);
   background: var(--bg);
   border: 1px solid var(--edge);
@@ -64,7 +70,7 @@ kbd {
   border-radius: 3px;
   vertical-align: middle;
 }
-kbd + kbd { margin-left: 3px; }
+kbd + kbd { margin-left: 4px; }
 kbd.on-primary {
   color: var(--accent);
   background: transparent;
@@ -73,20 +79,21 @@ kbd.on-primary {
 
 input[type='number'] {
   font: inherit;
-  width: 64px;
+  width: 72px;
   color: var(--text);
   background: var(--bg);
   border: 1px solid var(--edge);
   border-radius: 4px;
   padding: 4px 8px;
 }
-input[type='range'] { accent-color: var(--accent); width: 120px; }
+input[type='range'] { accent-color: var(--accent); width: 140px; margin: 0; }
 
 .muted { color: var(--muted); }
 .spacer { flex: 1; }
-.error { color: var(--cut); margin-top: 8px; white-space: pre-wrap; }
+.error { color: var(--cut); white-space: pre-wrap; }
+.empty .error { margin-top: var(--gap); }
 .error::before { content: '! '; font-weight: 700; }
-.hint { color: var(--muted); margin-top: -2px; }
+.hint { color: var(--muted); }
 .hint::before { content: '# '; }
 
 /* Start screen */
@@ -102,16 +109,15 @@ input[type='range'] { accent-color: var(--accent); width: 120px; }
   border-style: dashed;
   background: transparent;
 }
-.drop-title { font-size: 17px; font-weight: 700; }
-.drop-title::before { content: '> '; color: var(--accent); }
+.drop-title { font-size: 19px; font-weight: 700; }
 
 /* Recent videos gallery */
 .gallery { width: 100%; max-width: 1040px; margin-top: 24px; }
 .gallery-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; }
 .gallery-dir { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: var(--gap); }
 .card {
-  display: flex; flex-direction: column; gap: 3px; min-width: 0;
+  display: flex; flex-direction: column; align-items: stretch; gap: 3px; min-width: 0;
   padding: 0; border: none; background: none; text-align: left;
   font-weight: 400;
 }
@@ -124,21 +130,23 @@ input[type='range'] { accent-color: var(--accent); width: 120px; }
 .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .badge {
   position: absolute; right: 5px; bottom: 5px;
-  font-size: 12px; font-variant-numeric: tabular-nums;
+  font-size: 14px; font-variant-numeric: tabular-nums;
   padding: 1px 4px; border-radius: 2px; background: rgba(0, 0, 0, 0.8);
 }
 .card-name { margin-top: 4px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.card-meta { font-size: 12px; color: var(--muted); }
+.card-meta { font-size: 14px; color: var(--muted); }
 
 /* Editor */
 .app { height: 100%; display: flex; flex-direction: column; }
 header {
-  display: flex; align-items: center; gap: 10px;
-  padding: 6px 12px; border-bottom: 1px solid var(--line); background: var(--panel);
+  display: flex; align-items: center; gap: var(--gap);
+  padding: var(--gap); border-bottom: 1px solid var(--line); background: var(--panel);
 }
 .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
 
-.stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; margin: 10px 15px 10px 12px; }
+.editor { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: var(--gap); padding: var(--gap); }
+/* Hugs the fitted video so the controls sit right under it. */
+.stage { flex: none; display: flex; justify-content: center; }
 /* Border drawn with a shadow so it doesn't eat into the fitted video box. */
 .frame {
   overflow: hidden; background: #000; border-radius: 4px; cursor: pointer;
@@ -148,28 +156,26 @@ header {
 .frame.pannable:active { cursor: grabbing; }
 .frame video { width: 100%; height: 100%; display: block; pointer-events: none; }
 
-.controls { padding: 0 15px 10px 12px; display: flex; flex-direction: column; gap: 8px; }
-.row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.play {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 36px; height: 30px; padding: 0;
-}
+.controls { display: flex; flex-direction: column; gap: var(--gap); }
+.row { display: flex; align-items: center; gap: var(--gap); flex-wrap: wrap; }
+/* One height for every control so they line up. */
+header > button, .row > button, .group > button, .busy > button, .row input[type='number'] { height: var(--control); }
+.play { justify-content: center; width: 40px; padding: 0; }
 .play svg { width: 12px; height: 12px; fill: currentColor; }
 .time { font-variant-numeric: tabular-nums; font-weight: 600; }
-.tools { gap: 16px; }
-.group { display: flex; align-items: center; gap: 6px; }
-.label { color: var(--muted); font-size: 12px; text-transform: lowercase; }
-.zoom-val { width: 44px; font-variant-numeric: tabular-nums; }
+.group { display: flex; align-items: center; gap: var(--gap); }
+.label { color: var(--muted); font-size: 14px; text-transform: lowercase; }
+.zoom-val { width: 52px; font-variant-numeric: tabular-nums; }
 
 /* Timeline panel: track, jump keys, transport */
 .timeline-panel {
   display: flex; flex-direction: column;
-  padding: 10px 12px 8px;
+  padding: var(--gap);
   background: var(--panel);
   border: 1px solid var(--edge);
   border-radius: 4px;
 }
-.transport { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }
+.transport { margin-top: var(--gap); padding-top: var(--gap); border-top: 1px dashed var(--line); }
 
 /* Timeline: flat, muted fills */
 .timeline { position: relative; height: 36px; cursor: pointer; }
@@ -209,17 +215,17 @@ header {
 }
 
 /* Home-row jump keys under the timeline, each with a tick marking its exact spot */
-.keyrow { position: relative; height: 34px; }
+.keyrow { position: relative; height: 36px; }
 .key-slot { position: absolute; top: 0; width: 0; height: 100%; }
 .tick { position: absolute; top: 0; left: -0.5px; width: 1px; height: 6px; background: var(--edge); }
 .key {
   --shift: -50%;
   position: absolute;
-  top: 7px;
+  top: 8px;
   left: 0;
   margin: 0;
-  min-width: 24px;
-  height: 24px;
+  min-width: 26px;
+  height: 26px;
   transform: translateX(var(--shift));
   cursor: pointer;
   transition: transform 0.06s, border-bottom-width 0.06s, background 0.1s, color 0.1s;
@@ -235,24 +241,37 @@ header {
 }
 .key-slot:has(.pressed) .tick { background: var(--accent); }
 
-.cuts { display: flex; flex-wrap: wrap; gap: 8px; }
+.cuts { display: flex; flex-wrap: wrap; gap: var(--gap); }
 .chip {
   display: inline-flex; overflow: hidden;
   border: 1px solid var(--edge); border-radius: 4px;
 }
-.chip button { border: none; border-radius: 0; padding: 2px 8px; font-size: 12px; }
+.chip button { border: none; border-radius: 0; padding: 3px 8px; font-size: 14px; }
 .chip-seek { color: var(--cut) !important; }
 .chip-x { color: var(--muted) !important; }
 
-.actions, .compress { border-top: 1px solid var(--line); padding-top: 8px; }
-.custom { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+.actions { border-top: 1px solid var(--line); padding-top: var(--gap); }
+.custom { display: inline-flex; align-items: center; gap: var(--gap); color: var(--muted); }
+.compress.off .custom { opacity: 0.5; }
+
+/* Checkbox-style toggle button; the box sits as far from the left edge as from the top and bottom. */
+.check { gap: 8px; padding-left: calc((var(--control) - 2px - 16px) / 2); }
+.check .box {
+  position: relative; width: 16px; height: 16px;
+  border: 1px solid var(--muted); border-radius: 3px; background: var(--bg);
+}
+.check.active .box { background: var(--accent); border-color: var(--accent); }
+.check.active .box::after {
+  content: ''; position: absolute; left: 4px; top: 1px; width: 4px; height: 8px;
+  border: solid var(--bg); border-width: 0 2px 2px 0; transform: rotate(45deg);
+}
 .result { color: var(--muted); }
 
 /* Progress */
 .busy {
-  display: flex; align-items: center; gap: 10px;
-  padding: 6px 12px; border-top: 1px solid var(--line); background: var(--panel);
+  display: flex; align-items: center; gap: var(--gap);
+  padding: var(--gap); border-top: 1px solid var(--line); background: var(--panel);
 }
-.busy span { width: 140px; font-variant-numeric: tabular-nums; font-weight: 600; }
+.busy span { width: 160px; font-variant-numeric: tabular-nums; font-weight: 600; }
 .bar { flex: 1; height: 8px; background: var(--panel-2); border-radius: 4px; overflow: hidden; }
 .bar div { height: 100%; background: var(--accent); border-radius: 4px; transition: width 0.2s; }

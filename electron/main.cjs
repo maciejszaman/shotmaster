@@ -182,19 +182,29 @@ ipcMain.handle('thumb', async (_e, file) => {
 
 ipcMain.handle('show-in-folder', (_e, file) => shell.showItemInFolder(file));
 
-ipcMain.handle('export', async (_e, { input, start, end, cuts, zoom }) => {
+// Shrinks the window to the editor's height so no empty space is left below it.
+ipcMain.handle('fit-height', (_e, height) => {
+  if (!win || win.isMaximized() || win.isFullScreen()) return;
+  win.setContentSize(win.getContentSize()[0], Math.round(height));
+});
+
+// With targetMB, the edit goes to a temp file and is then compressed into the chosen output.
+ipcMain.handle('export', async (_e, { input, start, end, cuts, zoom, targetMB }) => {
   const parsed = path.parse(input);
   const res = await dialog.showSaveDialog(win, {
-    defaultPath: path.join(parsed.dir, `${parsed.name}_edit.mp4`),
+    defaultPath: path.join(parsed.dir, `${parsed.name}_${targetMB ? `${targetMB}MB` : 'edit'}.mp4`),
     filters: [{ name: 'MP4 video', extensions: ['mp4'] }],
   });
   if (res.canceled) return null;
   const output = res.filePath.toLowerCase().endsWith('.mp4') ? res.filePath : `${res.filePath}.mp4`;
-  return exportEdit({ input, output, start, end, cuts, zoom, onProgress: (p) => send('export', p) });
-});
+  const edit = { input, start, end, cuts, zoom, onProgress: (p) => send('export', p) };
+  if (!targetMB) return exportEdit({ ...edit, output });
 
-ipcMain.handle('compress', (_e, { input, targetMB }) => {
-  const parsed = path.parse(input);
-  const output = path.join(parsed.dir, `${parsed.name}_${targetMB}MB.mp4`);
-  return compress({ input, output, targetMB, onProgress: (p) => send('compress', p) });
+  const tmp = path.join(os.tmpdir(), `shotmaster-${process.pid}-${Date.now()}.mp4`);
+  try {
+    await exportEdit({ ...edit, output: tmp });
+    return await compress({ input: tmp, output, targetMB, onProgress: (p) => send('compress', p) });
+  } finally {
+    fs.rm(tmp, { force: true }, () => {});
+  }
 });

@@ -4,10 +4,13 @@ const fs = require('fs');
 const os = require('os');
 const { spawn } = require('child_process');
 
-// Bundled ffmpeg binary (unpacked from asar in production builds), system ffmpeg as fallback.
+// ffmpeg shipped next to the app in packaged builds, ffmpeg-static in development,
+// system ffmpeg as fallback.
 let ffmpegPath = 'ffmpeg';
-try {
-  const p = require('ffmpeg-static').replace('app.asar', 'app.asar.unpacked');
+const bundled = process.resourcesPath && path.join(process.resourcesPath, process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg');
+if (bundled && fs.existsSync(bundled)) ffmpegPath = bundled;
+else try {
+  const p = require('ffmpeg-static');
   if (fs.existsSync(p)) ffmpegPath = p;
 } catch {}
 
@@ -184,4 +187,4 @@ async function compress({ input, output, targetMB, start = 0, onProgress }) {
   }
 }
 
-module.exports = { ffmpegPath, run, probe, cancel, keepSegments, exportEdit, compress };
+module.exports = { ffmpegPath, probe, cancel, exportEdit, compress };

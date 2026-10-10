@@ -1,6 +1,6 @@
 {
   "name": "shotmaster",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Clip cutter and video compressor (FFMPEG UI)",
   "private": true,
   "type": "module",
@@ -15,7 +15,7 @@
     "start": "vite build && electron .",
     "dist": "vite build && electron-builder",
     "dist:linux": "vite build && electron-builder --linux",
-    "dist:win": "test -f node_modules/ffmpeg-static/ffmpeg.exe || (cd node_modules/ffmpeg-static && npm_config_platform=win32 npm_config_arch=x64 node install.js) && vite build && podman run --rm -v \"$PWD\":/project:z -v ~/.cache/electron:/root/.cache/electron:z -v ~/.cache/electron-builder:/root/.cache/electron-builder:z docker.io/electronuserland/builder:wine bash -c 'cd /project && npx electron-builder --win'"
+    "dist:win": "test -f node_modules/ffmpeg-static/ffmpeg.exe || (cd node_modules/ffmpeg-static && npm_config_platform=win32 npm_config_arch=x64 node install.js) && vite build && podman run --rm -v \"$PWD\":/project:z -v ~/.cache/electron:/root/.cache/electron:z -v ~/.cache/electron-builder:/root/.cache/electron-builder:z docker.io/electronuserland/builder:wine bash -c 'cd /project && node_modules/.bin/electron-builder --win'"
   },
   "trustedDependencies": [
     "electron",
@@ -31,47 +31,70 @@
       "cli/**",
       "package.json"
     ],
-    "asarUnpack": [
-      "node_modules/ffmpeg-static/**"
+    "electronLanguages": [
+      "en-US"
     ],
     "linux": {
       "target": "AppImage",
       "category": "AudioVideo",
-      "files": [
-        "!node_modules/ffmpeg-static/ffmpeg.exe"
+      "extraResources": [
+        {
+          "from": "node_modules/ffmpeg-static/ffmpeg",
+          "to": "ffmpeg"
+        },
+        {
+          "from": "node_modules/ffmpeg-static/ffmpeg.LICENSE",
+          "to": "ffmpeg.LICENSE"
+        }
       ]
     },
     "win": {
       "target": "nsis",
-      "files": [
-        "!node_modules/ffmpeg-static/ffmpeg"
+      "extraResources": [
+        {
+          "from": "node_modules/ffmpeg-static/ffmpeg.exe",
+          "to": "ffmpeg.exe"
+        },
+        {
+          "from": "node_modules/ffmpeg-static/ffmpeg.exe.LICENSE",
+          "to": "ffmpeg.LICENSE"
+        }
       ]
     },
     "mac": {
-      "target": "dmg"
+      "target": "dmg",
+      "extraResources": [
+        {
+          "from": "node_modules/ffmpeg-static/ffmpeg",
+          "to": "ffmpeg"
+        },
+        {
+          "from": "node_modules/ffmpeg-static/ffmpeg.LICENSE",
+          "to": "ffmpeg.LICENSE"
+        }
+      ]
     },
     "directories": {
       "output": "release"
     },
     "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
     "nsis": {
+      "guid": "96d8244a-d8ad-55e2-b548-44b20f20950f",
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true
     }
   },
-  "dependencies": {
-    "@fontsource-variable/jetbrains-mono": "^5.3.0",
-    "ffmpeg-static": "^5.3.0",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0"
-  },
   "devDependencies": {
+    "@fontsource/ubuntu-mono": "^5.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "concurrently": "^10.0.6",
     "electron": "^44.7.0",
     "electron-builder": "^26.15.3",
+    "ffmpeg-static": "^5.3.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
     "vite": "^8.3.4",
     "wait-on": "^9.5.1"
   }
